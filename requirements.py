@@ -13,7 +13,4 @@ required_packages = [
 for package in required_packages:
     install(package)
 
-# Instalar FFmpeg
-install_ffmpeg()
-
 print("Todos os pacotes necessários foram instalados com sucesso!")
