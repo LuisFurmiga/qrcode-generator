@@ -5,21 +5,30 @@ from viewmodel import QRCodeViewModel # type: ignore
 
 class QRCodeView:
 
+    LEFT_FRAME_WIDTH_SIZE = 350 # Largura Left Frame
+    RIGHT_FRAME_WIDTH_SIZE = 330 # Largura Right Frame
+    FRAME_HEIGHT_SIZE = 300 # Altura dos Frames, pois, como um frame está ao lado do outro, ambos possuem o mesmo tamanho
+    
     QRCODE_SIZE = 200
-    WINDOW_SIZE = 400
+
+    WINDOW_WIDTH_SIZE = int(LEFT_FRAME_WIDTH_SIZE) + int(RIGHT_FRAME_WIDTH_SIZE) 
+    WINDOW_HEIGHT_SIZE = int(FRAME_HEIGHT_SIZE) + QRCODE_SIZE
 
     def __init__(self, root):
         self.root = root
         self.root.title("Gerador de QR Code")
-        self.WINDOWS_TOTAL_SIZE = str(self.QRCODE_SIZE + self.WINDOW_SIZE)+"x"+str(self.QRCODE_SIZE + self.WINDOW_SIZE)
+        self.WINDOWS_TOTAL_SIZE = str(self.WINDOW_WIDTH_SIZE)+"x"+str(self.WINDOW_HEIGHT_SIZE)
         self.root.geometry(self.WINDOWS_TOTAL_SIZE)
-        #self.root.resizable(False, False)
+        self.root.resizable(False, False)
 
         self.viewmodel = QRCodeViewModel()
 
         # Frame principal
         self.frame_principal = ttk.Frame(self.root)
         self.frame_principal.pack(fill=tk.BOTH, expand=True)
+        self.frame_principal.grid_columnconfigure(0, weight=1)  # Frame esquerdo ocupa menos espaço
+        self.frame_principal.grid_columnconfigure(1, weight=2)  # Frame direito ocupa mais espaço
+
 
         # Criar os frames esquerdo e direito
         self.frame_esquerdo = ttk.Frame(self.frame_principal, padding=10)
@@ -30,53 +39,62 @@ class QRCodeView:
 
         # Adicionando título ao frame esquerdo
         self.lbl_title = ttk.Label(self.frame_esquerdo, text="Gerador de QR Code", font=("Arial", 14, "bold"))
-        self.lbl_title.pack(pady=10)
+        self.lbl_title.grid(pady = 5, row = 0, columnspan = 2)
 
         # **Opções do QR Code no lado esquerdo**
         self.lbl_fg_color = ttk.Label(self.frame_esquerdo, text="Cor do QR Code:")
-        self.lbl_fg_color.pack()
+        self.lbl_fg_color.grid(pady = 5, row = 1, column = 0)
 
         self.btn_fg_color = ttk.Button(self.frame_esquerdo, text="Escolher Cor", command=self.selecionar_cor_fg)
-        self.btn_fg_color.pack(pady=5)
+        self.btn_fg_color.grid(pady = 5, row = 1, column = 1)
 
         self.lbl_bg_color = ttk.Label(self.frame_esquerdo, text="Cor de Fundo:")
-        self.lbl_bg_color.pack()
+        self.lbl_bg_color.grid(pady = 5, row = 2, column = 0)
 
         self.btn_bg_color = ttk.Button(self.frame_esquerdo, text="Escolher Cor", command=self.selecionar_cor_bg)
-        self.btn_bg_color.pack(pady=5)
+        self.btn_bg_color.grid(pady = 5, row = 2, column = 1)
 
         self.lbl_estilo = ttk.Label(self.frame_esquerdo, text="Estilo do QR Code:")
-        self.lbl_estilo.pack()
+        self.lbl_estilo.grid(pady = 5, row = 3, column = 0)
 
         opcoes_estilo = ["Padrão", "Arredondado", "Quadrados Espaçados", "Círculos", "Barras Verticais", "Barras Horizontais"]
         self.combo_estilo = ttk.Combobox(self.frame_esquerdo, values=opcoes_estilo, state="readonly")
-        self.combo_estilo.pack(pady=5)
+        self.combo_estilo.grid(pady = 5, row = 3, column = 1)
         self.combo_estilo.current(0)
 
         self.logo_var = tk.IntVar(value=0)
         self.chk_logo = ttk.Checkbutton(self.frame_esquerdo, text="Incluir logo no QR Code", variable=self.logo_var)
-        self.chk_logo.pack(pady=5)
+        self.chk_logo.grid(pady = 5, row = 4, column = 0)
 
         self.btn_selecionar_logo = ttk.Button(self.frame_esquerdo, text="Selecionar Logo", command=self.selecionar_logo)
-        self.btn_selecionar_logo.pack()
+        self.btn_selecionar_logo.grid(pady = 5, row = 4, column = 1)
 
         self.lbl_logo_path = ttk.Label(self.frame_esquerdo, text="Nenhuma logo selecionada", foreground="gray")
-        self.lbl_logo_path.pack(pady=5)
+        self.lbl_logo_path.grid(pady = 5, row = 5, columnspan = 2)
 
         # Botão para gerar QR Code
         self.btn_gerar = ttk.Button(self.frame_esquerdo, text="Gerar QR Code", style="Primary.TButton", command=self.gerar_qr_code)
-        self.btn_gerar.pack(pady=10)
+        self.btn_gerar.grid(pady = 5, row = 6, columnspan = 2)
 
         # Rótulo de status
         self.lbl_status = ttk.Label(self.frame_esquerdo, text="", foreground="blue")
-        self.lbl_status.pack(pady=5)
+        self.lbl_status.grid(pady = 5, row = 7, columnspan = 2)
 
         # Rótulo para exibir o QR Code gerado
         self.lbl_imagem = ttk.Label(self.frame_esquerdo)
-        self.lbl_imagem.pack(pady=10)
+        self.lbl_imagem.grid(pady = 5, row = 8, columnspan = 2)
+
+        # Criar um frame para o QR Code com borda em baixo relevo
+        self.qr_frame = tk.Frame(self.frame_esquerdo, width=self.QRCODE_SIZE + 5, height=self.QRCODE_SIZE + 5, relief="sunken", borderwidth=2)
+        self.qr_frame.grid(pady = 5, row = 8, columnspan = 2)
+        self.qr_frame.pack_propagate(False)  # Impede que o frame se redimensione
+
+        # Criar o rótulo de imagem dentro do frame
+        self.lbl_imagem = ttk.Label(self.qr_frame)
+        self.lbl_imagem.pack(expand=True, fill="both")
 
         # **Campos de entrada no lado direito (com rolagem)**
-        self.canvas = tk.Canvas(self.frame_direito)
+        self.canvas = tk.Canvas(self.frame_direito, width=self.RIGHT_FRAME_WIDTH_SIZE, height=self.FRAME_HEIGHT_SIZE, highlightthickness=0)
         self.scroll_y = ttk.Scrollbar(self.frame_direito, orient="vertical", command=self.canvas.yview)
         self.scroll_frame = ttk.Frame(self.canvas)
 
@@ -93,11 +111,11 @@ class QRCodeView:
 
         # Seleção do tipo de QR Code
         self.lbl_tipo = ttk.Label(self.scroll_frame, text="Tipo de QR Code:")
-        self.lbl_tipo.pack(pady=5)
+        self.lbl_tipo.pack(pady=5, fill="both", expand=True)
 
         opcoes = ["URL", "Texto", "Número de telefone", "SMS", "E-mail", "Contato (vCard)", "Localização", "WhatsApp", "Wi-Fi"]
         self.combo_tipo = ttk.Combobox(self.scroll_frame, values=opcoes, state="readonly")
-        self.combo_tipo.pack(pady=5)
+        self.combo_tipo.pack(pady=5, fill="both", expand=True)
         self.combo_tipo.bind("<<ComboboxSelected>>", self.atualizar_campos)
 
         # Criar frames para cada tipo de entrada
@@ -109,10 +127,10 @@ class QRCodeView:
             vars = []
             for label_text in campos:
                 lbl = tk.Label(frame, text=label_text)
-                #lbl.pack(anchor="w")  # Alinhado à esquerda
+                lbl.pack(anchor="w")  # Alinhado à esquerda
                 lbl.pack()
                 entry = tk.Entry(frame, width=WIDTH_SETTED)
-                entry.pack(pady=2)
+                entry.pack(anchor="w", pady=2)
                 vars.append(entry)
 
             return frame, vars
@@ -127,56 +145,56 @@ class QRCodeView:
         # Criar frame E-Mail
         self.frames["E-mail"] = tk.Frame(self.scroll_frame)
         self.lbl_email = tk.Label(self.frames["E-mail"], text="E-Mail:")
-        self.lbl_email.pack()
+        self.lbl_email.pack(anchor="w")
         self.entry_email = tk.Entry(self.frames["E-mail"], width=WIDTH_SETTED)
-        self.entry_email.pack()
+        self.entry_email.pack(anchor="w")
         self.lbl_email_subject = tk.Label(self.frames["E-mail"], text="Assunto:")
-        self.lbl_email_subject.pack()
+        self.lbl_email_subject.pack(anchor="w")
         self.entry_email_subject = tk.Entry(self.frames["E-mail"], width=WIDTH_SETTED)
-        self.entry_email_subject.pack()
+        self.entry_email_subject.pack(anchor="w")
         self.lbl_email_body = tk.Label(self.frames["E-mail"], text="Conteudo:")
-        self.lbl_email_body.pack()
+        self.lbl_email_body.pack(anchor="w")
         self.entry_email_body = tk.Text(self.frames["E-mail"], width=WIDTH_SETTED, height=6)
-        self.entry_email_body.pack(pady=2)
+        self.entry_email_body.pack(anchor="w", pady=2)
 
         # Criar frame WhatsApp
         self.frames["WhatsApp"] = tk.Frame(self.scroll_frame)
         self.lbl_whatsapp_pais = tk.Label(self.frames["WhatsApp"], text="Código do País:")
-        self.lbl_whatsapp_pais.pack()
+        self.lbl_whatsapp_pais.pack(anchor="w")
         self.combo_whatsapp_pais = ttk.Combobox(self.frames["WhatsApp"], values=["", "55"], state="readonly")
         self.combo_whatsapp_pais.current(0)
-        self.combo_whatsapp_pais.pack()
+        self.combo_whatsapp_pais.pack(anchor="w")
         self.lbl_whatsapp_estado = tk.Label(self.frames["WhatsApp"], text="Código do Estado:")
-        self.lbl_whatsapp_estado.pack()
+        self.lbl_whatsapp_estado.pack(anchor="w")
         self.combo_whatsapp_estado = ttk.Combobox(self.frames["WhatsApp"], values=["", "11", "21", "31", "37"], state="readonly")
         self.combo_whatsapp_estado.current(0)
-        self.combo_whatsapp_estado.pack()
+        self.combo_whatsapp_estado.pack(anchor="w")
         self.lbl_whatsapp_numero = tk.Label(self.frames["WhatsApp"], text="Número:")
-        self.lbl_whatsapp_numero.pack()
+        self.lbl_whatsapp_numero.pack(anchor="w")
         self.entry_whatsapp_numero = tk.Entry(self.frames["WhatsApp"], width=WIDTH_SETTED)
-        self.entry_whatsapp_numero.pack()
+        self.entry_whatsapp_numero.pack(anchor="w")
         self.lbl_whatsapp_texto = tk.Label(self.frames["WhatsApp"], text="Mensagem:")
-        self.lbl_whatsapp_texto.pack()
+        self.lbl_whatsapp_texto.pack(anchor="w")
         self.entry_whatsapp_texto = tk.Text(self.frames["WhatsApp"], width=WIDTH_SETTED, height=6)
-        self.entry_whatsapp_texto.pack(pady=2)
+        self.entry_whatsapp_texto.pack(anchor="w", pady=2)
 
         # Criar frame Wi-Fi
         self.frames["Wi-Fi"] = tk.Frame(self.scroll_frame)
         self.lbl_ssid = tk.Label(self.frames["Wi-Fi"], text="Nome da Rede (SSID):")
-        self.lbl_ssid.pack()
+        self.lbl_ssid.pack(anchor="w")
         self.entry_wifi_ssid = tk.Entry(self.frames["Wi-Fi"], width=WIDTH_SETTED)
-        self.entry_wifi_ssid.pack()
+        self.entry_wifi_ssid.pack(anchor="w")
         self.wifi_hidden_var = tk.IntVar()
         self.check_wifi_hidden = tk.Checkbutton(self.frames["Wi-Fi"], text="Rede Oculta", variable=self.wifi_hidden_var)
         self.check_wifi_hidden.pack()
         self.lbl_senha = tk.Label(self.frames["Wi-Fi"], text="Senha da Rede:")
-        self.lbl_senha.pack()
+        self.lbl_senha.pack(anchor="w")
         self.entry_wifi_senha = tk.Entry(self.frames["Wi-Fi"], width=WIDTH_SETTED)
-        self.entry_wifi_senha.pack()
+        self.entry_wifi_senha.pack(anchor="w")
         self.lbl_tipo_wifi = tk.Label(self.frames["Wi-Fi"], text="Tipo de Segurança:")
-        self.lbl_tipo_wifi.pack()
+        self.lbl_tipo_wifi.pack(anchor="w")
         self.combo_wifi_tipo = ttk.Combobox(self.frames["Wi-Fi"], values=["WPA/WPA2", "WEP", "Nenhuma"], state="readonly")
-        self.combo_wifi_tipo.pack()
+        self.combo_wifi_tipo.pack(anchor="w")
 
     def selecionar_cor_fg(self):
         """Abre o seletor de cor para a cor do QR Code"""
@@ -254,4 +272,3 @@ class QRCodeView:
         self.lbl_imagem.config(image=img)
         self.lbl_imagem.image = img
         self.lbl_status.config(text="")
-
