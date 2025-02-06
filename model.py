@@ -61,8 +61,9 @@ class QRCodeModel:
 
         if incluir_logo and self.logo_path:
             try:
+                image_scale = 5 # Lembrando que 1 : image_scale, ou seja, quanto menor o valor, maior a imagem
                 logo = Image.open(self.logo_path).convert("RGBA")
-                logo_size = (qr_img.size[0] // 5, qr_img.size[1] // 5)
+                logo_size = (qr_img.size[0] // image_scale, qr_img.size[1] // image_scale)
                 logo = logo.resize(logo_size, Image.LANCZOS)
 
                 qr_with_logo = qr_img.copy()
