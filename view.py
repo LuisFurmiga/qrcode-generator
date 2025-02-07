@@ -7,7 +7,7 @@ class QRCodeView:
 
     LEFT_FRAME_WIDTH_SIZE = 350 # Largura Left Frame
     RIGHT_FRAME_WIDTH_SIZE = 330 # Largura Right Frame
-    FRAME_HEIGHT_SIZE = 300 # Altura dos Frames, pois, como um frame está ao lado do outro, ambos possuem o mesmo tamanho
+    FRAME_HEIGHT_SIZE = 300 # Altura de ambos Frames
     
     QRCODE_SIZE = 200
 
