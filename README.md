@@ -50,7 +50,7 @@ Isso abrirá a interface gráfica do programa.
 ├── view.py           # Interface gráfica construída com Tkinter
 ├── viewmodel.py      # Lógica intermediária entre a view e o model
 ├── model.py          # Manipulação do QR Code (cores, estilos, inserção de logo)
-├── requirements.py   # Instalação automática de dependências
+└── requirements.py   # Instalação automática de dependências
 ```
 
 ### **Descrição dos Arquivos**
