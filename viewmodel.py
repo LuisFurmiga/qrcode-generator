@@ -15,8 +15,14 @@ class QRCodeViewModel:
         self.model.logo_path = path
 
     def gerar_qr_code(self, dados, estilo, incluir_logo, callback):
-        """Executa a geração do QR Code em uma thread separada"""
+        """
+        Executa a geração do QR Code em uma thread separada.
+        Em caso de erro, envia um dicionário {"error": str(msg)} no callback.
+        """
         def thread_target():
-            img_path = self.model.gerar_qr_code(dados, estilo, incluir_logo)
-            callback(img_path)
+            try:
+                img_path = self.model.gerar_qr_code(dados, estilo, incluir_logo)
+                callback({"path": img_path})
+            except Exception as e:
+                callback({"error": f"Falha ao gerar QR Code: {e}"})
         threading.Thread(target=thread_target, daemon=True).start()
