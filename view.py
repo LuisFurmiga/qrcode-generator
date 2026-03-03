@@ -1,9 +1,10 @@
-# view.py — versão 3.2 (fix: container fixo para frames dinâmicos)
+# view.py — versão 3.3
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, colorchooser
 from PIL import Image, ImageTk
 from viewmodel import QRCodeViewModel  # type: ignore
 import os
+from urllib.parse import quote
 
 class QRCodeView:
 
@@ -33,45 +34,58 @@ class QRCodeView:
         self.frame_direito = ttk.Frame(self.frame_principal, padding=10); self.frame_direito.grid(row=0, column=1, sticky="nsew")
 
         row = 0
-        ttk.Label(self.frame_esquerdo, text="Aparência", font=("Arial", 13, "bold")).grid(row=row, column=0, columnspan=2, pady=(0,6)); row+=1
+        ttk.Label(self.frame_esquerdo, text="Aparência", font=("Arial", 13, "bold")).grid(row=row, column=0, columnspan=3, pady=(0,6)); row+=1
 
         ttk.Label(self.frame_esquerdo, text="Cor do QR Code:").grid(pady=3, row=row, column=0, sticky="w")
-        ttk.Button(self.frame_esquerdo, text="Escolher", command=self.selecionar_cor_fg).grid(pady=3, row=row, column=1, sticky="e"); row+=1
+        ttk.Button(self.frame_esquerdo, text="Escolher", command=self.selecionar_cor_fg).grid(pady=3, row=row, column=1, sticky="e")
+        self.swatch_fg = tk.Label(self.frame_esquerdo, width=2, bg="#000000", relief="solid")
+        self.swatch_fg.grid(pady=3, row=row, column=2, sticky="w", padx=(4, 0)); row+=1
+
         ttk.Label(self.frame_esquerdo, text="Cor de Fundo:").grid(pady=3, row=row, column=0, sticky="w")
-        ttk.Button(self.frame_esquerdo, text="Escolher", command=self.selecionar_cor_bg).grid(pady=3, row=row, column=1, sticky="e"); row+=1
+        ttk.Button(self.frame_esquerdo, text="Escolher", command=self.selecionar_cor_bg).grid(pady=3, row=row, column=1, sticky="e")
+        self.swatch_bg = tk.Label(self.frame_esquerdo, width=2, bg="#FFFFFF", relief="solid")
+        self.swatch_bg.grid(pady=3, row=row, column=2, sticky="w", padx=(4, 0)); row+=1
 
         ttk.Label(self.frame_esquerdo, text="Estilo do QR Code:").grid(pady=3, row=row, column=0, sticky="w")
         opcoes_estilo = ["Padrão", "Quadrado", "Arredondado", "Quadrados Espaçados", "Círculos", "Barras Verticais", "Barras Horizontais"]
-        self.combo_estilo = ttk.Combobox(self.frame_esquerdo, values=opcoes_estilo, state="readonly"); self.combo_estilo.grid(pady=3, row=row, column=1, sticky="ew"); self.combo_estilo.current(0); row+=1
+        self.combo_estilo = ttk.Combobox(self.frame_esquerdo, values=opcoes_estilo, state="readonly"); self.combo_estilo.grid(pady=3, row=row, column=1, columnspan=2, sticky="ew"); self.combo_estilo.current(0); row+=1
 
         ttk.Label(self.frame_esquerdo, text="Olhos (Finders):").grid(pady=3, row=row, column=0, sticky="w")
         opcoes_olhos = ["Padrão", "Quadrado", "Arredondado", "Círculos"]
-        self.combo_olhos = ttk.Combobox(self.frame_esquerdo, values=opcoes_olhos, state="readonly"); self.combo_olhos.grid(pady=3, row=row, column=1, sticky="ew"); self.combo_olhos.current(0); row+=1
+        self.combo_olhos = ttk.Combobox(self.frame_esquerdo, values=opcoes_olhos, state="readonly"); self.combo_olhos.grid(pady=3, row=row, column=1, columnspan=2, sticky="ew"); self.combo_olhos.current(0); row+=1
 
         ttk.Label(self.frame_esquerdo, text="Preenchimento:").grid(pady=3, row=row, column=0, sticky="w")
         self.fill_options = ["Sólido", "Gradiente Horizontal", "Gradiente Vertical", "Gradiente Radial", "Imagem"]
-        self.combo_fill = ttk.Combobox(self.frame_esquerdo, values=self.fill_options, state="readonly"); self.combo_fill.grid(pady=3, row=row, column=1, sticky="ew"); self.combo_fill.current(0); self.combo_fill.bind("<<ComboboxSelected>>", self._on_fill_changed); row+=1
+        self.combo_fill = ttk.Combobox(self.frame_esquerdo, values=self.fill_options, state="readonly"); self.combo_fill.grid(pady=3, row=row, column=1, columnspan=2, sticky="ew"); self.combo_fill.current(0); self.combo_fill.bind("<<ComboboxSelected>>", self._on_fill_changed); row+=1
         self.btn_fill_image = ttk.Button(self.frame_esquerdo, text="Imagem de Preenchimento", command=self.selecionar_imagem_preenchimento)
-        self.btn_fill_image.grid(pady=2, row=row, column=0, columnspan=2); self.btn_fill_image.grid_remove(); row+=1
+        self.btn_fill_image.grid(pady=2, row=row, column=0, columnspan=3); self.btn_fill_image.grid_remove(); row+=1
 
         ttk.Label(self.frame_esquerdo, text="Fundo (imagem):").grid(pady=3, row=row, column=0, sticky="w")
-        ttk.Button(self.frame_esquerdo, text="Selecionar", command=self.selecionar_fundo).grid(pady=3, row=row, column=1, sticky="e"); row+=1
+        self.btn_fundo = ttk.Button(self.frame_esquerdo, text="Selecionar", command=self.selecionar_fundo)
+        self.btn_fundo.grid(pady=3, row=row, column=1, columnspan=2, sticky="e"); row+=1
+
         ttk.Label(self.frame_esquerdo, text="Fundo alpha (0-100%):").grid(pady=3, row=row, column=0, sticky="w")
-        self.scale_bg_alpha = ttk.Scale(self.frame_esquerdo, from_=0, to=100, orient="horizontal"); self.scale_bg_alpha.set(100); self.scale_bg_alpha.grid(pady=3, row=row, column=1, sticky="ew"); row+=1
+        self.lbl_alpha_val = ttk.Label(self.frame_esquerdo, text="100%", width=5)
+        self.lbl_alpha_val.grid(pady=3, row=row, column=2, sticky="w")
+        self.scale_bg_alpha = ttk.Scale(self.frame_esquerdo, from_=0, to=100, orient="horizontal", command=self._update_alpha_label)
+        self.scale_bg_alpha.set(100)
+        self.scale_bg_alpha.grid(pady=3, row=row, column=1, sticky="ew"); row+=1
         self.bg_image_path = None
 
-        ttk.Label(self.frame_esquerdo, text="Logo").grid(pady=(10,3), row=row, column=0, columnspan=2, sticky="w"); row+=1
+        ttk.Label(self.frame_esquerdo, text="Logo").grid(pady=(10,3), row=row, column=0, columnspan=3, sticky="w"); row+=1
         self.logo_var = tk.IntVar(value=0)
         ttk.Checkbutton(self.frame_esquerdo, text="Incluir logo", variable=self.logo_var).grid(pady=3, row=row, column=0, sticky="w")
-        ttk.Button(self.frame_esquerdo, text="Selecionar Logo", command=self.selecionar_logo).grid(pady=3, row=row, column=1, sticky="e"); row+=1
+        ttk.Button(self.frame_esquerdo, text="Selecionar Logo", command=self.selecionar_logo).grid(pady=3, row=row, column=1, columnspan=2, sticky="e"); row+=1
         ttk.Label(self.frame_esquerdo, text="Escala (2=maior, 10=menor):").grid(pady=3, row=row, column=0, sticky="w")
-        self.spin_logo_scale = tk.Spinbox(self.frame_esquerdo, from_=2, to=10, width=5); self.spin_logo_scale.delete(0,"end"); self.spin_logo_scale.insert(0,"5"); self.spin_logo_scale.grid(pady=3, row=row, column=1, sticky="e"); row+=1
+        self.spin_logo_scale = tk.Spinbox(self.frame_esquerdo, from_=2, to=10, width=5); self.spin_logo_scale.delete(0,"end"); self.spin_logo_scale.insert(0,"5"); self.spin_logo_scale.grid(pady=3, row=row, column=1, columnspan=2, sticky="e"); row+=1
         ttk.Label(self.frame_esquerdo, text="Borda da logo (px):").grid(pady=3, row=row, column=0, sticky="w")
-        self.spin_logo_border = tk.Spinbox(self.frame_esquerdo, from_=0, to=32, width=5); self.spin_logo_border.delete(0,"end"); self.spin_logo_border.insert(0,"8"); self.spin_logo_border.grid(pady=3, row=row, column=1, sticky="e"); row+=1
+        self.spin_logo_border = tk.Spinbox(self.frame_esquerdo, from_=0, to=32, width=5); self.spin_logo_border.delete(0,"end"); self.spin_logo_border.insert(0,"8"); self.spin_logo_border.grid(pady=3, row=row, column=1, columnspan=2, sticky="e"); row+=1
         ttk.Label(self.frame_esquerdo, text="Raio dos cantos (px):").grid(pady=3, row=row, column=0, sticky="w")
-        self.spin_logo_radius = tk.Spinbox(self.frame_esquerdo, from_=0, to=64, width=5); self.spin_logo_radius.delete(0,"end"); self.spin_logo_radius.insert(0,"20"); self.spin_logo_radius.grid(pady=3, row=row, column=1, sticky="e"); row+=1
+        self.spin_logo_radius = tk.Spinbox(self.frame_esquerdo, from_=0, to=64, width=5); self.spin_logo_radius.delete(0,"end"); self.spin_logo_radius.insert(0,"20"); self.spin_logo_radius.grid(pady=3, row=row, column=1, columnspan=2, sticky="e"); row+=1
         ttk.Label(self.frame_esquerdo, text="Cor da borda:").grid(pady=3, row=row, column=0, sticky="w")
-        ttk.Button(self.frame_esquerdo, text="Escolher", command=self.selecionar_cor_borda_logo).grid(pady=3, row=row, column=1, sticky="e"); row+=1
+        ttk.Button(self.frame_esquerdo, text="Escolher", command=self.selecionar_cor_borda_logo).grid(pady=3, row=row, column=1, sticky="e")
+        self.swatch_logo_border = tk.Label(self.frame_esquerdo, width=2, bg="#FFFFFF", relief="solid")
+        self.swatch_logo_border.grid(pady=3, row=row, column=2, sticky="w", padx=(4, 0)); row+=1
         self.logo_border_color = "#FFFFFF"
         self.logo_path = None
 
@@ -84,6 +98,8 @@ class QRCodeView:
         self.canvas.configure(yscrollcommand=self.scroll_y.set)
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scroll_y.pack(side="right", fill="y")
+        self.canvas.bind("<Enter>", lambda e: self.canvas.bind_all("<MouseWheel>", self._on_mousewheel))
+        self.canvas.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
 
         ttk.Label(self.scroll_frame, text="Tipo de QR Code:").pack(pady=3, anchor="w")
         opcoes = ["URL", "Texto", "Número de telefone", "SMS", "E-mail", "Contato (vCard)", "Localização", "WhatsApp", "Wi-Fi"]
@@ -124,9 +140,14 @@ class QRCodeView:
         # WhatsApp
         self.frames["WhatsApp"] = tk.Frame(self.dynamic_container)
         tk.Label(self.frames["WhatsApp"], text="Código do País:").pack(anchor="w")
-        self.combo_whatsapp_pais = ttk.Combobox(self.frames["WhatsApp"], values=["", "55"], state="readonly"); self.combo_whatsapp_pais.current(0); self.combo_whatsapp_pais.pack(anchor="w")
-        tk.Label(self.frames["WhatsApp"], text="Código do Estado:").pack(anchor="w")
-        self.combo_whatsapp_estado = ttk.Combobox(self.frames["WhatsApp"], values=["", "11", "21", "31", "37"], state="readonly"); self.combo_whatsapp_estado.current(0); self.combo_whatsapp_estado.pack(anchor="w")
+        self.combo_whatsapp_pais = ttk.Combobox(self.frames["WhatsApp"], values=["", "+55"], state="readonly"); self.combo_whatsapp_pais.current(0); self.combo_whatsapp_pais.pack(anchor="w")
+        tk.Label(self.frames["WhatsApp"], text="DDD:").pack(anchor="w")
+        todos_ddd = ["","11","12","13","14","15","16","17","18","19","21","22","24","27","28",
+                     "31","32","33","34","35","37","38","41","42","43","44","45","46","47","48","49",
+                     "51","53","54","55","61","62","63","64","65","66","67","68","69",
+                     "71","73","74","75","77","79","81","82","83","84","85","86","87","88","89",
+                     "91","92","93","94","95","96","97","98","99"]
+        self.combo_whatsapp_estado = ttk.Combobox(self.frames["WhatsApp"], values=todos_ddd); self.combo_whatsapp_estado.current(0); self.combo_whatsapp_estado.pack(anchor="w")
         tk.Label(self.frames["WhatsApp"], text="Número:").pack(anchor="w")
         self.entry_whatsapp_numero = tk.Entry(self.frames["WhatsApp"], width=WIDTH_SETTED); self.entry_whatsapp_numero.pack(anchor="w")
         tk.Label(self.frames["WhatsApp"], text="Mensagem:").pack(anchor="w")
@@ -145,7 +166,8 @@ class QRCodeView:
         self.combo_wifi_tipo.pack(anchor="w")
 
         # Seleciona um tipo padrão e exibe apenas ele no container
-        self.combo_tipo.current(0)  # "URL"
+        self.combo_tipo.current(0)
+        self.combo_tipo.set("URL")
         self.atualizar_campos()
 
         # Opções de exportação (fora do container, mantêm posição fixa abaixo)
@@ -161,13 +183,24 @@ class QRCodeView:
         tk.Label(self.scroll_frame, text="Borda (módulos):").pack(anchor="w")
         self.entry_border = tk.Entry(self.scroll_frame); self.entry_border.insert(0, "2"); self.entry_border.pack(fill="x")
 
-        tk.Button(self.scroll_frame, text="Escolher arquivo de saída…", command=self.escolher_saida).pack(pady=6, fill="x")
-        tk.Button(self.scroll_frame, text="Gerar QR Code", command=self.gerar_qr_code).pack(pady=6, fill="x")
+        tk.Button(self.scroll_frame, text="Escolher arquivo de saída…", command=self.escolher_saida).pack(pady=(6, 2), fill="x")
+        self.lbl_saida = ttk.Label(self.scroll_frame, text="qrcode.png", foreground="gray")
+        self.lbl_saida.pack(anchor="w", padx=4)
+        self.btn_gerar = tk.Button(self.scroll_frame, text="Gerar QR Code", command=self.gerar_qr_code)
+        self.btn_gerar.pack(pady=6, fill="x")
         self.lbl_status = ttk.Label(self.scroll_frame, text="", foreground="blue"); self.lbl_status.pack()
 
         self.qr_frame = tk.Frame(self.scroll_frame, width=self.QRCODE_SIZE + 5, height=self.QRCODE_SIZE + 5, relief="sunken", borderwidth=2)
         self.qr_frame.pack(pady=8); self.qr_frame.pack_propagate(False)
         self.lbl_imagem = ttk.Label(self.qr_frame); self.lbl_imagem.pack(expand=True, fill="both")
+
+    # ── Helpers ──────────────────────────────────────────────────────────────
+
+    def _update_alpha_label(self, val=None):
+        self.lbl_alpha_val.config(text=f"{int(float(self.scale_bg_alpha.get()))}%")
+
+    def _on_mousewheel(self, event):
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def _on_fill_changed(self, event=None):
         choice = self.combo_fill.get()
@@ -176,6 +209,8 @@ class QRCodeView:
         else:
             self.btn_fill_image.grid_remove()
             self.fill_image_path = None
+
+    # ── Seletores ─────────────────────────────────────────────────────────────
 
     def selecionar_imagem_preenchimento(self):
         path = filedialog.askopenfilename(title="Imagem de Preenchimento", filetypes=[("Imagens", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")])
@@ -187,21 +222,25 @@ class QRCodeView:
         path = filedialog.askopenfilename(title="Imagem de Fundo", filetypes=[("Imagens", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")])
         if path:
             self.bg_image_path = path
+            self.btn_fundo.config(text=os.path.basename(path))
 
     def selecionar_cor_fg(self):
         cor = colorchooser.askcolor(title="Cor do QR Code")[1]
         if cor:
             self.viewmodel.set_fg_color(cor)
+            self.swatch_fg.config(bg=cor)
 
     def selecionar_cor_bg(self):
         cor = colorchooser.askcolor(title="Cor de Fundo")[1]
         if cor:
             self.viewmodel.set_bg_color(cor)
+            self.swatch_bg.config(bg=cor)
 
     def selecionar_cor_borda_logo(self):
         cor = colorchooser.askcolor(title="Cor da Borda da Logo")[1]
         if cor:
             self.logo_border_color = cor
+            self.swatch_logo_border.config(bg=cor)
 
     def selecionar_logo(self):
         path = filedialog.askopenfilename(title="Logo", filetypes=[("Imagens", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")])
@@ -215,9 +254,12 @@ class QRCodeView:
         path = filedialog.asksaveasfilename(defaultextension=default_ext, filetypes=[("PNG", "*.png"), ("SVG", "*.svg")])
         if path:
             self.output_path = path
+            self.lbl_saida.config(text=os.path.basename(path))
+
+    # ── Geração ───────────────────────────────────────────────────────────────
 
     def gerar_qr_code(self):
-        self.lbl_status.config(text="Gerando QR Code...")
+        self.lbl_status.config(text="Gerando QR Code...", foreground="blue")
 
         tipo = self.combo_tipo.get()
         estilo = self.combo_estilo.get()
@@ -231,15 +273,15 @@ class QRCodeView:
         elif tipo == "Número de telefone":
             dados = f"tel:{self.entry_telefone[0].get()}"
         elif tipo == "SMS":
-            dados = f"smsto:{self.entry_sms_numero[0].get()}:{self.entry_sms_mensagem[0].get()}"
+            dados = f"smsto:{self.entry_sms_numero[0].get()}:{quote(self.entry_sms_mensagem[0].get())}"
         elif tipo == "E-mail":
-            dados = f"mailto:{self.entry_email.get()}?subject={self.entry_email_subject.get()}&body={self.entry_email_body.get('1.0', tk.END).strip()}"
+            dados = f"mailto:{self.entry_email.get()}?subject={quote(self.entry_email_subject.get())}&body={quote(self.entry_email_body.get('1.0', tk.END).strip())}"
         elif tipo == "Contato (vCard)":
             dados = f"BEGIN:VCARD\\nFN:{self.entry_vcard_nome[0].get()}\\nTEL:{self.entry_vcard_telefone[0].get()}\\nEMAIL:{self.entry_vcard_email[0].get()}\\nURL:{self.entry_vcard_url[0].get()}\\nEND:VCARD"
         elif tipo == "Localização":
             dados = f"geo:{self.entry_latitude[0].get()},{self.entry_longitude[0].get()}"
         elif tipo == "WhatsApp":
-            dados = f"https://wa.me/{self.combo_whatsapp_pais.get()}{self.combo_whatsapp_estado.get()}{self.entry_whatsapp_numero.get()}?text={self.entry_whatsapp_texto.get('1.0', tk.END).strip()}"
+            dados = f"https://wa.me/{self.combo_whatsapp_pais.get()}{self.combo_whatsapp_estado.get()}{self.entry_whatsapp_numero.get()}?text={quote(self.entry_whatsapp_texto.get('1.0', tk.END).strip())}"
         elif tipo == "Wi-Fi":
             dados = f"WIFI:T:{self.combo_wifi_tipo.get()};S:{self.entry_wifi_ssid.get()};P:{self.entry_wifi_senha.get()};H:{getattr(self,'wifi_hidden_var',tk.IntVar()).get()};;"
 
@@ -296,7 +338,10 @@ class QRCodeView:
             messagebox.showerror("Erro", f"Parâmetros da logo inválidos: {e}")
             self.lbl_status.config(text=""); return
 
+        self.btn_gerar.config(state="disabled")
         self.viewmodel.gerar_qr_code(dados, estilo, incluir_logo, self.atualizar_imagem)
+
+    # ── Callbacks ─────────────────────────────────────────────────────────────
 
     def atualizar_campos(self, event=None):
         tipo = self.combo_tipo.get()
@@ -307,7 +352,13 @@ class QRCodeView:
             self.frames[tipo].pack(pady=5, anchor="w", fill="x")
 
     def atualizar_imagem(self, result):
+        self.btn_gerar.config(state="normal")
         self.lbl_status.config(text="")
+
+        if isinstance(result, dict) and result.get("error"):
+            messagebox.showerror("Erro", result["error"])
+            return
+
         img_path = result.get("path") if isinstance(result, dict) else result
         if not img_path or not os.path.exists(img_path):
             if str(self.output_path).lower().endswith(".svg"):
@@ -315,7 +366,9 @@ class QRCodeView:
                 return
             messagebox.showerror("Erro", "Arquivo de imagem não encontrado após a geração.")
             return
+
         img = Image.open(img_path).resize((self.QRCODE_SIZE, self.QRCODE_SIZE))
         img = ImageTk.PhotoImage(img)
         self.lbl_imagem.config(image=img)
         self.lbl_imagem.image = img
+        self.lbl_status.config(text=f"Salvo: {os.path.basename(img_path)}", foreground="green")
